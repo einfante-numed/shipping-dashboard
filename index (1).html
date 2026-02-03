@@ -1,0 +1,1764 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shipping Report Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            min-height: 100vh;
+            padding: 24px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 32px;
+            margin-bottom: 24px;
+        }
+
+        .header-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 8px;
+        }
+
+        .header-title h1 {
+            font-size: 32px;
+            font-weight: bold;
+            color: #1e293b;
+        }
+
+        .header-subtitle {
+            color: #64748b;
+            font-size: 16px;
+        }
+
+        .upload-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
+        .upload-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 24px;
+        }
+
+        .upload-card h2 {
+            font-size: 20px;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .upload-area {
+            border: 2px dashed #cbd5e1;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .upload-area:hover {
+            border-color: #3b82f6;
+            background: #eff6ff;
+        }
+
+        .upload-area.success {
+            border-color: #10b981;
+            background: #f0fdf4;
+        }
+
+        .upload-icon {
+            font-size: 32px;
+            margin-bottom: 8px;
+        }
+
+        .upload-text {
+            color: #64748b;
+            font-size: 14px;
+        }
+
+        .upload-text.success {
+            color: #059669;
+            font-weight: 600;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .alert {
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 24px;
+            display: none;
+        }
+
+        .alert.show {
+            display: flex;
+            align-items: start;
+            gap: 12px;
+        }
+
+        .alert.error {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #991b1b;
+        }
+
+        .alert.loading {
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            color: #1e40af;
+        }
+
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .summary-card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+        }
+
+        .summary-card-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+            color: #64748b;
+            font-size: 14px;
+        }
+
+        .summary-card-value {
+            font-size: 28px;
+            font-weight: bold;
+            color: #1e293b;
+        }
+
+        .summary-card-value.green {
+            color: #059669;
+        }
+
+        .summary-card-value.blue {
+            color: #2563eb;
+        }
+
+        .summary-card-value.red {
+            color: #dc2626;
+        }
+
+        .summary-card-sub {
+            font-size: 12px;
+            color: #64748b;
+            margin-top: 4px;
+        }
+
+        .filters-section {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 24px;
+            margin-bottom: 24px;
+            display: none;
+        }
+
+        .filters-section.show {
+            display: block;
+        }
+
+        .filters-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .filter-group label {
+            font-size: 14px;
+            font-weight: 600;
+            color: #475569;
+        }
+
+        .filter-group input,
+        .filter-group select {
+            padding: 8px 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            font-size: 14px;
+            color: #1e293b;
+        }
+
+        .filter-group input:focus,
+        .filter-group select:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .filter-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #2563eb;
+        }
+
+        .btn-secondary {
+            background: #64748b;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #475569;
+        }
+
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #059669;
+        }
+
+        .export-buttons {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .table-container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            display: none;
+        }
+
+        .table-container.show {
+            display: block;
+        }
+
+        .table-header {
+            padding: 24px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .table-header h2 {
+            font-size: 20px;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 4px;
+        }
+
+        .table-header p {
+            font-size: 14px;
+            color: #64748b;
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead {
+            background: #f8fafc;
+        }
+
+        th {
+            padding: 12px 24px;
+            text-align: left;
+            font-size: 12px;
+            font-weight: 600;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        th.text-right {
+            text-align: right;
+        }
+
+        td {
+            padding: 16px 24px;
+            font-size: 14px;
+            color: #1e293b;
+            border-top: 1px solid #e5e7eb;
+        }
+
+        td.text-right {
+            text-align: right;
+        }
+
+        tr:hover {
+            background: #f8fafc;
+        }
+
+        .expand-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 12px;
+            padding: 4px 8px;
+            color: #3b82f6;
+            transition: transform 0.2s;
+        }
+
+        .expand-btn:hover {
+            color: #2563eb;
+        }
+
+        .expand-btn.expanded {
+            transform: rotate(90deg);
+        }
+
+        .details-row td {
+            padding: 0 !important;
+        }
+
+        .filter-dropdown {
+            position: absolute;
+            background: white;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            padding: 12px;
+            z-index: 1000;
+            min-width: 250px;
+            max-height: 400px;
+            overflow-y: auto;
+            display: none;
+        }
+
+        .filter-dropdown.show {
+            display: block;
+        }
+
+        .filter-search {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #cbd5e1;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+
+        .filter-options {
+            max-height: 250px;
+            overflow-y: auto;
+        }
+
+        .filter-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 8px;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+
+        .filter-option:hover {
+            background: #f1f5f9;
+        }
+
+        .filter-option input[type="checkbox"] {
+            cursor: pointer;
+        }
+
+        .filter-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid #e5e7eb;
+        }
+
+        .filter-btn {
+            flex: 1;
+            padding: 6px 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 4px;
+            background: white;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .filter-btn:hover {
+            background: #f8fafc;
+        }
+
+        .filter-btn.primary {
+            background: #3b82f6;
+            color: white;
+            border-color: #3b82f6;
+        }
+
+        .filter-btn.primary:hover {
+            background: #2563eb;
+        }
+
+        .instructions {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 48px;
+            text-align: center;
+        }
+
+        .instructions.hide {
+            display: none;
+        }
+
+        .instructions-icon {
+            font-size: 64px;
+            color: #cbd5e1;
+            margin-bottom: 16px;
+        }
+
+        .instructions h3 {
+            font-size: 24px;
+            font-weight: 600;
+            color: #475569;
+            margin-bottom: 8px;
+        }
+
+        .instructions > p {
+            color: #64748b;
+            margin-bottom: 24px;
+        }
+
+        .instructions-box {
+            background: #f8fafc;
+            border-radius: 8px;
+            padding: 24px;
+            text-align: left;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .instructions-box h4 {
+            font-weight: 600;
+            color: #475569;
+            margin-bottom: 12px;
+        }
+
+        .instructions-box ol {
+            color: #64748b;
+            font-size: 14px;
+            line-height: 1.8;
+            padding-left: 20px;
+        }
+
+        .instructions-box li {
+            margin-bottom: 8px;
+        }
+
+        .icon {
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div style="display: flex; justify-content: space-between; align-items: start;">
+                <div>
+                    <div class="header-title">
+                        <span style="font-size: 32px;">📦</span>
+                        <h1>Shipping Report Dashboard</h1>
+                    </div>
+                    <p class="header-subtitle">Upload your weekly shipping report and sales data to compute gross profit</p>
+                </div>
+                <div style="display: flex; gap: 12px;" id="headerButtons" style="display: none;">
+                    <button class="btn btn-secondary" onclick="resetDashboard()">
+                        <span>🔄</span> Reset Dashboard
+                    </button>
+                    <button class="btn btn-primary" onclick="uploadNewData()">
+                        <span>📤</span> Upload New Data
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- File Upload Section -->
+        <div class="upload-section" id="uploadSection">
+            <!-- Shipping Report Upload -->
+            <div class="upload-card">
+                <h2>📄 Shipping Report (CSV)</h2>
+                <label for="shippingFile" class="upload-area" id="shippingUploadArea">
+                    <div class="upload-icon">📤</div>
+                    <div class="upload-text" id="shippingUploadText">Click to upload CSV file</div>
+                </label>
+                <input type="file" id="shippingFile" accept=".csv" />
+            </div>
+
+            <!-- Sales Report Upload -->
+            <div class="upload-card">
+                <h2>💰 Sales Report (Excel)</h2>
+                <label for="salesFile" class="upload-area" id="salesUploadArea">
+                    <div class="upload-icon">📤</div>
+                    <div class="upload-text" id="salesUploadText">Click to upload Excel file</div>
+                </label>
+                <input type="file" id="salesFile" accept=".xlsx,.xls" />
+            </div>
+        </div>
+
+        <!-- Alert Messages -->
+        <div class="alert error" id="errorAlert">
+            <span>⚠️</span>
+            <div>
+                <strong>Error</strong>
+                <p id="errorMessage"></p>
+            </div>
+        </div>
+
+        <div class="alert loading" id="loadingAlert">
+            <span>⏳</span>
+            <div>Processing files...</div>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="summary-cards" id="summaryCards" style="display: none;">
+            <div class="summary-card">
+                <div class="summary-card-header">
+                    <span>📦</span>
+                    <span>Total Shipments</span>
+                </div>
+                <div class="summary-card-value" id="totalShipments">0</div>
+                <div class="summary-card-sub" id="shipmentsSub"></div>
+            </div>
+
+            <div class="summary-card">
+                <div class="summary-card-header">
+                    <span>📈</span>
+                    <span>Gross Profit</span>
+                </div>
+                <div class="summary-card-value green" id="grossProfit">$0.00</div>
+                <div class="summary-card-sub" id="marginPercent"></div>
+            </div>
+
+            <div class="summary-card">
+                <div class="summary-card-header">
+                    <span>💵</span>
+                    <span>Total Revenue</span>
+                </div>
+                <div class="summary-card-value blue" id="totalRevenue">$0.00</div>
+            </div>
+
+            <div class="summary-card">
+                <div class="summary-card-header">
+                    <span>💳</span>
+                    <span>Total Cost</span>
+                </div>
+                <div class="summary-card-value red" id="totalCost">$0.00</div>
+            </div>
+        </div>
+
+        <!-- Filters Section -->
+        <div class="filters-section" id="filtersSection">
+            <h3 style="margin-bottom: 16px; color: #1e293b;">Filters</h3>
+            <div class="filters-grid">
+                <div class="filter-group">
+                    <label>Date From</label>
+                    <input type="date" id="dateFrom" />
+                </div>
+                <div class="filter-group">
+                    <label>Date To</label>
+                    <input type="date" id="dateTo" />
+                </div>
+                <div class="filter-group">
+                    <label>Sales Order</label>
+                    <input type="text" id="filterSalesOrder" placeholder="Search order..." />
+                </div>
+                <div class="filter-group">
+                    <label>Recipient</label>
+                    <input type="text" id="filterRecipient" placeholder="Search recipient..." />
+                </div>
+                <div class="filter-group">
+                    <label>Min Gross Profit</label>
+                    <input type="number" id="minGrossProfit" placeholder="0.00" step="0.01" />
+                </div>
+                <div class="filter-group">
+                    <label>Max Gross Profit</label>
+                    <input type="number" id="maxGrossProfit" placeholder="0.00" step="0.01" />
+                </div>
+            </div>
+            <div class="filter-actions">
+                <button class="btn btn-secondary" onclick="clearFilters()">Clear Filters</button>
+                <button class="btn btn-primary" onclick="applyFilters()">Apply Filters</button>
+            </div>
+        </div>
+
+        <!-- Detailed Shipments Table -->
+        <div class="table-container" id="tableContainer">
+            <div class="table-header">
+                <h2>Shipment Details</h2>
+                <p id="tableSubtitle">Showing 0 matched shipments</p>
+                <div class="export-buttons" style="margin-top: 12px;">
+                    <button class="btn btn-success" onclick="exportToCSV()">
+                        <span>📥</span> Export to CSV
+                    </button>
+                    <button class="btn btn-success" onclick="exportToExcel()">
+                        <span>📊</span> Export to Excel
+                    </button>
+                </div>
+            </div>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 40px;"></th>
+                            <th>
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    Tracking #
+                                    <button onclick="sortTable('trackingNumber')" style="background: none; border: none; cursor: pointer; font-size: 14px; padding: 2px;">⇅</button>
+                                    <button onclick="toggleFilterDropdown('tracking')" style="background: none; border: none; cursor: pointer; font-size: 12px; padding: 2px;">▼</button>
+                                </div>
+                            </th>
+                            <th>
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    Recipient
+                                    <button onclick="sortTable('recipient')" style="background: none; border: none; cursor: pointer; font-size: 14px; padding: 2px;">⇅</button>
+                                    <button onclick="toggleFilterDropdown('recipient')" style="background: none; border: none; cursor: pointer; font-size: 12px; padding: 2px;">▼</button>
+                                </div>
+                            </th>
+                            <th>
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    Ship Date
+                                    <button onclick="sortTable('shipDate')" style="background: none; border: none; cursor: pointer; font-size: 14px; padding: 2px;">⇅</button>
+                                    <button onclick="toggleFilterDropdown('shipDate')" style="background: none; border: none; cursor: pointer; font-size: 12px; padding: 2px;">▼</button>
+                                </div>
+                            </th>
+                            <th>
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    Order Ref
+                                    <button onclick="sortTable('references')" style="background: none; border: none; cursor: pointer; font-size: 14px; padding: 2px;">⇅</button>
+                                    <button onclick="toggleFilterDropdown('references')" style="background: none; border: none; cursor: pointer; font-size: 12px; padding: 2px;">▼</button>
+                                </div>
+                            </th>
+                            <th class="text-right">
+                                <div style="display: flex; align-items: center; justify-content: flex-end; gap: 8px;">
+                                    Revenue
+                                    <button onclick="sortTable('revenue')" style="background: none; border: none; cursor: pointer; font-size: 14px; padding: 2px;">⇅</button>
+                                    <button onclick="toggleFilterDropdown('revenue')" style="background: none; border: none; cursor: pointer; font-size: 12px; padding: 2px;">▼</button>
+                                </div>
+                            </th>
+                            <th class="text-right">
+                                <div style="display: flex; align-items: center; justify-content: flex-end; gap: 8px;">
+                                    Cost
+                                    <button onclick="sortTable('cost')" style="background: none; border: none; cursor: pointer; font-size: 14px; padding: 2px;">⇅</button>
+                                    <button onclick="toggleFilterDropdown('cost')" style="background: none; border: none; cursor: pointer; font-size: 12px; padding: 2px;">▼</button>
+                                </div>
+                            </th>
+                            <th class="text-right">
+                                <div style="display: flex; align-items: center; justify-content: flex-end; gap: 8px;">
+                                    Gross Profit
+                                    <button onclick="sortTable('grossProfit')" style="background: none; border: none; cursor: pointer; font-size: 14px; padding: 2px;">⇅</button>
+                                    <button onclick="toggleFilterDropdown('grossProfit')" style="background: none; border: none; cursor: pointer; font-size: 12px; padding: 2px;">▼</button>
+                                </div>
+                            </th>
+                            <th class="text-right">
+                                <div style="display: flex; align-items: center; justify-content: flex-end; gap: 8px;">
+                                    Margin %
+                                    <button onclick="sortTable('marginPercent')" style="background: none; border: none; cursor: pointer; font-size: 14px; padding: 2px;">⇅</button>
+                                    <button onclick="toggleFilterDropdown('marginPercent')" style="background: none; border: none; cursor: pointer; font-size: 12px; padding: 2px;">▼</button>
+                                </div>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Filter Dropdown -->
+        <div id="filterDropdown" class="filter-dropdown">
+            <input type="text" id="filterSearch" class="filter-search" placeholder="Search..." onkeyup="filterDropdownOptions()">
+            <div style="margin-bottom: 8px;">
+                <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer;">
+                    <input type="checkbox" id="selectAllFilter" onchange="toggleSelectAll()"> 
+                    <strong>Select All</strong>
+                </label>
+            </div>
+            <div id="filterOptions" class="filter-options"></div>
+            <div class="filter-actions">
+                <button class="filter-btn" onclick="closeFilterDropdown()">Cancel</button>
+                <button class="filter-btn primary" onclick="applyColumnFilter()">OK</button>
+            </div>
+        </div>
+
+        <!-- Instructions -->
+        <div class="instructions" id="instructions">
+            <div class="instructions-icon">📦</div>
+            <h3>Ready to Analyze</h3>
+            <p>Upload both files to compute gross profit</p>
+            <div class="instructions-box">
+                <h4>How it works:</h4>
+                <ol>
+                    <li>Upload your weekly shipping report (CSV file)</li>
+                    <li>Upload your sales report (Excel file)</li>
+                    <li>The dashboard matches shipment references with sales orders</li>
+                    <li>Gross profit is calculated automatically from cost and price data</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let shippingData = null;
+        let salesData = null;
+        let fullAnalysis = null;
+        let filteredAnalysis = null;
+
+        // Load saved data on page load
+        window.addEventListener('DOMContentLoaded', function() {
+            try {
+                const savedData = localStorage.getItem('dashboardData');
+                if (savedData) {
+                    const parsed = JSON.parse(savedData);
+                    const savedDate = new Date(parsed.timestamp);
+                    const now = new Date();
+                    const daysDiff = (now - savedDate) / (1000 * 60 * 60 * 24);
+                    
+                    // Show data if it's less than 30 days old
+                    if (daysDiff < 30) {
+                        fullAnalysis = parsed.analysis;
+                        filteredAnalysis = parsed.analysis;
+                        displayResults(parsed.analysis);
+                        
+                        // Show success message
+                        showNotification(`Data loaded from ${savedDate.toLocaleDateString()}`, 'success');
+                    } else {
+                        // Data too old, clear it
+                        localStorage.removeItem('dashboardData');
+                    }
+                }
+            } catch (e) {
+                console.warn('Could not load saved data:', e);
+            }
+        });
+
+        function showNotification(message, type) {
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 16px 24px;
+                background: ${type === 'success' ? '#10b981' : '#ef4444'};
+                color: white;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                z-index: 10000;
+                font-size: 14px;
+                font-weight: 600;
+            `;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.opacity = '0';
+                notification.style.transition = 'opacity 0.3s';
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+
+        // File upload handlers
+        document.getElementById('shippingFile').addEventListener('change', handleShippingFile);
+        document.getElementById('salesFile').addEventListener('change', handleSalesFile);
+
+        function parseCSV(text) {
+            const lines = text.split('\n').filter(line => line.trim());
+            const headers = lines[0].split(',').map(h => h.trim().replace(/\r/g, '').replace(/^\ufeff/, ''));
+            
+            return lines.slice(1).map(line => {
+                const values = [];
+                let current = '';
+                let inQuotes = false;
+                
+                for (let i = 0; i < line.length; i++) {
+                    const char = line[i];
+                    if (char === '"') {
+                        inQuotes = !inQuotes;
+                    } else if (char === ',' && !inQuotes) {
+                        values.push(current.trim().replace(/\r/g, ''));
+                        current = '';
+                    } else {
+                        current += char;
+                    }
+                }
+                values.push(current.trim().replace(/\r/g, ''));
+                
+                const row = {};
+                headers.forEach((header, index) => {
+                    row[header] = values[index] || '';
+                });
+                return row;
+            });
+        }
+
+        async function handleShippingFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            hideError();
+            showLoading();
+            
+            try {
+                const text = await file.text();
+                shippingData = parseCSV(text);
+                
+                document.getElementById('shippingUploadArea').classList.add('success');
+                document.getElementById('shippingUploadText').textContent = `✓ Loaded ${shippingData.length} shipments`;
+                document.getElementById('shippingUploadText').classList.add('success');
+                
+                if (salesData) {
+                    computeAnalysis();
+                }
+            } catch (err) {
+                showError(`Error parsing shipping file: ${err.message}`);
+            } finally {
+                hideLoading();
+            }
+        }
+
+        async function handleSalesFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            hideError();
+            showLoading();
+            
+            try {
+                const data = await file.arrayBuffer();
+                const workbook = XLSX.read(data, { type: 'array' });
+                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                salesData = XLSX.utils.sheet_to_json(firstSheet);
+                
+                document.getElementById('salesUploadArea').classList.add('success');
+                document.getElementById('salesUploadText').textContent = `✓ Loaded ${salesData.length} sales records`;
+                document.getElementById('salesUploadText').classList.add('success');
+                
+                if (shippingData) {
+                    computeAnalysis();
+                }
+            } catch (err) {
+                showError(`Error parsing sales file: ${err.message}`);
+            } finally {
+                hideLoading();
+            }
+        }
+
+        function formatDateToMMDDYYYY(dateInput) {
+            if (!dateInput) return '';
+            
+            let date;
+            
+            // Check if it's an Excel serial number
+            if (typeof dateInput === 'number') {
+                // Excel serial date - convert to JS date
+                // Excel dates are days since 1900-01-01 (with a leap year bug accounted for)
+                const excelEpoch = new Date(1899, 11, 30); // Dec 30, 1899
+                date = new Date(excelEpoch.getTime() + dateInput * 86400000);
+            } else {
+                // Already a date string or object
+                date = new Date(dateInput);
+            }
+            
+            if (isNaN(date.getTime())) return '';
+            
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            const year = date.getFullYear();
+            
+            return `${month}/${day}/${year}`;
+        }
+
+        function computeAnalysis() {
+            // Create a map of sales orders for quick lookup using date + sales order as key
+            const salesMap = new Map();
+            console.log('Processing sales data...');
+            salesData.forEach(sale => {
+                const salesOrder = String(sale['sales order'] || '').trim();
+                if (salesOrder) {
+                    // Get the date from Invoice Date and format as MM/DD/YYYY
+                    const dateKey = formatDateToMMDDYYYY(sale['Invoice Date']);
+                    
+                    // Create composite key: date_salesOrder
+                    const compositeKey = `${dateKey}_${salesOrder}`;
+                    
+                    if (!salesMap.has(compositeKey)) {
+                        salesMap.set(compositeKey, []);
+                    }
+                    salesMap.get(compositeKey).push(sale);
+                }
+            });
+            
+            console.log(`Created ${salesMap.size} sales map entries`);
+            console.log('Sample keys:', Array.from(salesMap.keys()).slice(0, 5));
+
+            // Process each shipment
+            const results = [];
+            let totalGrossProfit = 0;
+            let totalCost = 0;
+            let totalRevenue = 0;
+            let matchedShipments = 0;
+            let unmatchedShipments = 0;
+
+            console.log(`Processing ${shippingData.length} shipments...`);
+
+            shippingData.forEach((shipment, idx) => {
+                const references = (shipment.ShipmentReferences || '').trim();
+                if (!references) {
+                    unmatchedShipments++;
+                    return;
+                }
+
+                // Get the ship date from the shipment and format as MM/DD/YYYY
+                let shipDateKey = '';
+                if (shipment.ShipDate) {
+                    // ShipDate might be in format like "1/27/2026 0:00" or "01/27/2026 0:00"
+                    const datePart = shipment.ShipDate.split(' ')[0]; // Get "1/27/2026" or "01/27/2026"
+                    
+                    // Parse and reformat to MM/DD/YYYY
+                    const parts = datePart.split('/');
+                    if (parts.length === 3) {
+                        const month = String(parts[0]).padStart(2, '0');
+                        const day = String(parts[1]).padStart(2, '0');
+                        const year = parts[2];
+                        shipDateKey = `${month}/${day}/${year}`;
+                    }
+                }
+
+                // Split multiple references (space or comma separated)
+                const refNumbers = references.split(/[\s,]+/).filter(r => r.trim());
+                
+                if (idx < 3) {
+                    console.log(`Shipment ${idx}: Date=${shipDateKey}, Refs=${refNumbers.join(', ')}`);
+                }
+                
+                let shipmentGrossProfit = 0;
+                let shipmentCost = 0;
+                let shipmentRevenue = 0;
+                const matchedOrders = [];
+
+                refNumbers.forEach(ref => {
+                    // Create composite key using ship date + sales order
+                    const compositeKey = `${shipDateKey}_${ref.trim()}`;
+                    const matchedSales = salesMap.get(compositeKey);
+                    
+                    if (idx < 3) {
+                        console.log(`  Looking for key: ${compositeKey}, Found: ${matchedSales ? 'YES' : 'NO'}`);
+                    }
+                    
+                    if (matchedSales) {
+                        matchedSales.forEach(sale => {
+                            const quantity = parseFloat(sale.Quantity) || 0;
+                            const cost = parseFloat(sale.Cost) || 0;
+                            const price = parseFloat(sale['Total Price']) || 0;
+                            // Calculate gross profit manually: Total Price - Cost
+                            const grossProfit = price - cost;
+                            // Calculate margin percentage as (Price - Cost) / Price * 100
+                            const marginPercent = price > 0 ? (((price - cost) / price) * 100).toFixed(2) : 0;
+                            
+                            if (idx < 3) {
+                                console.log(`    Sale found - Qty: ${quantity}, Cost: ${cost}, Price: ${price}, Calculated GP: ${grossProfit}, Margin%: ${marginPercent}`);
+                            }
+                            
+                            shipmentCost += cost;
+                            shipmentRevenue += price;
+                            shipmentGrossProfit += grossProfit;
+                            
+                            matchedOrders.push({
+                                salesOrder: ref,
+                                customerName: sale['Customer Name'] || '',
+                                product: sale['Product Description'],
+                                quantity: quantity,
+                                cost: cost,
+                                revenue: price,
+                                grossProfit: grossProfit,
+                                marginPercent: marginPercent
+                            });
+                        });
+                    }
+                });
+
+                if (matchedOrders.length > 0) {
+                    matchedShipments++;
+                    totalGrossProfit += shipmentGrossProfit;
+                    totalCost += shipmentCost;
+                    totalRevenue += shipmentRevenue;
+
+                    // Get customer name from first matched order
+                    const customerName = matchedOrders.length > 0 ? matchedOrders[0].customerName : '';
+
+                    results.push({
+                        trackingNumber: shipment.TrackingNumber,
+                        recipient: shipment.Recipient,
+                        customerName: customerName,
+                        shipDate: shipment.ShipDate,
+                        references: references,
+                        shippingCost: parseFloat(shipment.TotalFinalCharge) || 0,
+                        grossProfit: shipmentGrossProfit,
+                        cost: shipmentCost,
+                        revenue: shipmentRevenue,
+                        marginPercent: shipmentRevenue > 0 ? ((shipmentGrossProfit / shipmentRevenue) * 100).toFixed(2) : 0,
+                        orders: matchedOrders
+                    });
+                } else {
+                    unmatchedShipments++;
+                }
+            });
+
+            // Sort by gross profit descending
+            results.sort((a, b) => b.grossProfit - a.grossProfit);
+
+            console.log(`Analysis complete: ${matchedShipments} matched, ${unmatchedShipments} unmatched`);
+            console.log(`Total Gross Profit: $${totalGrossProfit.toFixed(2)}`);
+
+            fullAnalysis = {
+                shipments: results,
+                summary: {
+                    totalShipments: shippingData.length,
+                    matchedShipments,
+                    unmatchedShipments,
+                    totalGrossProfit,
+                    totalCost,
+                    totalRevenue,
+                    avgMarginPercent: totalRevenue > 0 ? ((totalGrossProfit / totalRevenue) * 100).toFixed(2) : 0
+                }
+            };
+
+            filteredAnalysis = fullAnalysis;
+            displayResults(filteredAnalysis);
+        }
+
+        function displayResults(analysis) {
+            // Hide instructions and upload section
+            document.getElementById('instructions').classList.add('hide');
+            document.getElementById('uploadSection').style.display = 'none';
+            
+            // Show header buttons
+            document.getElementById('headerButtons').style.display = 'flex';
+            
+            // Show filters
+            document.getElementById('filtersSection').classList.add('show');
+            
+            // Store all shipments globally for filtering/sorting
+            allShipments = analysis.shipments;
+            
+            // Save to localStorage for persistence
+            try {
+                localStorage.setItem('dashboardData', JSON.stringify({
+                    analysis: analysis,
+                    timestamp: new Date().toISOString()
+                }));
+            } catch (e) {
+                console.warn('Could not save to localStorage:', e);
+            }
+            
+            // Show summary cards
+            document.getElementById('summaryCards').style.display = 'grid';
+            document.getElementById('totalShipments').textContent = analysis.summary.totalShipments;
+            document.getElementById('shipmentsSub').textContent = 
+                `${analysis.summary.matchedShipments} matched, ${analysis.summary.unmatchedShipments} unmatched`;
+            document.getElementById('grossProfit').textContent = formatCurrency(analysis.summary.totalGrossProfit);
+            document.getElementById('marginPercent').textContent = `${analysis.summary.avgMarginPercent}% margin`;
+            document.getElementById('totalRevenue').textContent = formatCurrency(analysis.summary.totalRevenue);
+            document.getElementById('totalCost').textContent = formatCurrency(analysis.summary.totalCost);
+
+            // Show table
+            document.getElementById('tableContainer').classList.add('show');
+            document.getElementById('tableSubtitle').textContent = `Showing ${analysis.shipments.length} matched shipments`;
+
+            // Populate table
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '';
+            
+            let currentDisplayedShipments = analysis.shipments;
+            
+            currentDisplayedShipments.forEach((shipment, index) => {
+                const row = document.createElement('tr');
+                row.className = 'shipment-row';
+                
+                // Use customer name from sales data, fallback to shipping recipient
+                const displayRecipient = shipment.customerName || shipment.recipient.split(' ').slice(0, 3).join(' ');
+                
+                row.innerHTML = `
+                    <td>
+                        <button class="expand-btn" onclick="toggleDetails(${index})" id="expand-btn-${index}">▶</button>
+                    </td>
+                    <td style="font-weight: 600;">${shipment.trackingNumber}</td>
+                    <td>${displayRecipient}</td>
+                    <td>${shipment.shipDate}</td>
+                    <td style="color: #2563eb; font-weight: 600;">${shipment.references}</td>
+                    <td class="text-right">${formatCurrency(shipment.revenue)}</td>
+                    <td class="text-right">${formatCurrency(shipment.cost)}</td>
+                    <td class="text-right" style="font-weight: 600; color: #059669;">${formatCurrency(shipment.grossProfit)}</td>
+                    <td class="text-right">${shipment.marginPercent}%</td>
+                `;
+                
+                tbody.appendChild(row);
+                
+                // Add details row (hidden by default)
+                const detailsRow = document.createElement('tr');
+                detailsRow.className = 'details-row';
+                detailsRow.id = `details-${index}`;
+                detailsRow.style.display = 'none';
+                
+                let detailsHTML = '<td colspan="9" style="padding: 0;"><div style="padding: 20px; background: #f8fafc; border-top: 1px solid #e5e7eb;">';
+                detailsHTML += '<h4 style="margin-bottom: 12px; color: #1e293b;">Order Details</h4>';
+                detailsHTML += '<table style="width: 100%; font-size: 13px;">';
+                detailsHTML += '<thead><tr style="background: #e2e8f0;">';
+                detailsHTML += '<th style="padding: 8px; text-align: left;">Sales Order</th>';
+                detailsHTML += '<th style="padding: 8px; text-align: left;">Product</th>';
+                detailsHTML += '<th style="padding: 8px; text-align: right;">Quantity</th>';
+                detailsHTML += '<th style="padding: 8px; text-align: right;">Unit Cost</th>';
+                detailsHTML += '<th style="padding: 8px; text-align: right;">Unit Price</th>';
+                detailsHTML += '<th style="padding: 8px; text-align: right;">Total Cost</th>';
+                detailsHTML += '<th style="padding: 8px; text-align: right;">Total Price</th>';
+                detailsHTML += '<th style="padding: 8px; text-align: right;">GP</th>';
+                detailsHTML += '<th style="padding: 8px; text-align: right;">Margin%</th>';
+                detailsHTML += '</tr></thead><tbody>';
+                
+                shipment.orders.forEach(order => {
+                    const unitCost = order.quantity > 0 ? (order.cost / order.quantity) : 0;
+                    const unitPrice = order.quantity > 0 ? (order.revenue / order.quantity) : 0;
+                    
+                    detailsHTML += '<tr style="border-bottom: 1px solid #e5e7eb;">';
+                    detailsHTML += `<td style="padding: 8px;">${order.salesOrder}</td>`;
+                    detailsHTML += `<td style="padding: 8px;">${order.product}</td>`;
+                    detailsHTML += `<td style="padding: 8px; text-align: right;">${order.quantity}</td>`;
+                    detailsHTML += `<td style="padding: 8px; text-align: right;">${formatCurrency(unitCost)}</td>`;
+                    detailsHTML += `<td style="padding: 8px; text-align: right;">${formatCurrency(unitPrice)}</td>`;
+                    detailsHTML += `<td style="padding: 8px; text-align: right;">${formatCurrency(order.cost)}</td>`;
+                    detailsHTML += `<td style="padding: 8px; text-align: right;">${formatCurrency(order.revenue)}</td>`;
+                    detailsHTML += `<td style="padding: 8px; text-align: right; font-weight: 600; color: #059669;">${formatCurrency(order.grossProfit)}</td>`;
+                    detailsHTML += `<td style="padding: 8px; text-align: right;">${order.marginPercent}%</td>`;
+                    detailsHTML += '</tr>';
+                });
+                
+                detailsHTML += '</tbody></table></div></td>';
+                detailsRow.innerHTML = detailsHTML;
+                tbody.appendChild(detailsRow);
+            });
+        }
+
+        function toggleDetails(index) {
+            const detailsRow = document.getElementById(`details-${index}`);
+            const expandBtn = document.getElementById(`expand-btn-${index}`);
+            
+            if (detailsRow.style.display === 'none') {
+                detailsRow.style.display = 'table-row';
+                expandBtn.classList.add('expanded');
+                expandBtn.textContent = '▼';
+            } else {
+                detailsRow.style.display = 'none';
+                expandBtn.classList.remove('expanded');
+                expandBtn.textContent = '▶';
+            }
+        }
+
+        function formatCurrency(value) {
+            return new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD',
+                minimumFractionDigits: 2
+            }).format(value);
+        }
+
+        function showError(message) {
+            document.getElementById('errorMessage').textContent = message;
+            document.getElementById('errorAlert').classList.add('show');
+        }
+
+        function hideError() {
+            document.getElementById('errorAlert').classList.remove('show');
+        }
+
+        function showLoading() {
+            document.getElementById('loadingAlert').classList.add('show');
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingAlert').classList.remove('show');
+        }
+
+        function applyFilters() {
+            if (!fullAnalysis) return;
+
+            const dateFrom = document.getElementById('dateFrom').value;
+            const dateTo = document.getElementById('dateTo').value;
+            const salesOrder = document.getElementById('filterSalesOrder').value.toLowerCase();
+            const recipient = document.getElementById('filterRecipient').value.toLowerCase();
+            const minGP = parseFloat(document.getElementById('minGrossProfit').value) || null;
+            const maxGP = parseFloat(document.getElementById('maxGrossProfit').value) || null;
+
+            let filtered = fullAnalysis.shipments.filter(shipment => {
+                // Date filter
+                if (dateFrom || dateTo) {
+                    const shipDate = new Date(shipment.shipDate);
+                    if (dateFrom && shipDate < new Date(dateFrom)) return false;
+                    if (dateTo && shipDate > new Date(dateTo)) return false;
+                }
+
+                // Sales order filter
+                if (salesOrder && !shipment.references.toLowerCase().includes(salesOrder)) {
+                    return false;
+                }
+
+                // Recipient filter (search in customer name)
+                if (recipient && !(shipment.customerName || shipment.recipient).toLowerCase().includes(recipient)) {
+                    return false;
+                }
+
+                // Gross profit filter
+                if (minGP !== null && shipment.grossProfit < minGP) return false;
+                if (maxGP !== null && shipment.grossProfit > maxGP) return false;
+
+                return true;
+            });
+
+            // Recalculate totals for filtered data
+            let totalGrossProfit = 0;
+            let totalCost = 0;
+            let totalRevenue = 0;
+
+            filtered.forEach(shipment => {
+                totalGrossProfit += shipment.grossProfit;
+                totalCost += shipment.cost;
+                totalRevenue += shipment.revenue;
+            });
+
+            filteredAnalysis = {
+                shipments: filtered,
+                summary: {
+                    totalShipments: fullAnalysis.summary.totalShipments,
+                    matchedShipments: filtered.length,
+                    unmatchedShipments: fullAnalysis.summary.unmatchedShipments,
+                    totalGrossProfit,
+                    totalCost,
+                    totalRevenue,
+                    avgMarginPercent: totalRevenue > 0 ? ((totalGrossProfit / totalRevenue) * 100).toFixed(2) : 0
+                }
+            };
+
+            displayResults(filteredAnalysis);
+        }
+
+        function clearFilters() {
+            document.getElementById('dateFrom').value = '';
+            document.getElementById('dateTo').value = '';
+            document.getElementById('filterSalesOrder').value = '';
+            document.getElementById('filterRecipient').value = '';
+            document.getElementById('minGrossProfit').value = '';
+            document.getElementById('maxGrossProfit').value = '';
+
+            if (fullAnalysis) {
+                filteredAnalysis = fullAnalysis;
+                displayResults(filteredAnalysis);
+            }
+        }
+
+        function exportToCSV() {
+            if (!filteredAnalysis || !filteredAnalysis.shipments.length) {
+                alert('No data to export');
+                return;
+            }
+
+            const headers = ['Tracking Number', 'Recipient', 'Ship Date', 'Order Reference', 'Revenue', 'Cost', 'Gross Profit', 'Margin %'];
+            const rows = filteredAnalysis.shipments.map(s => [
+                s.trackingNumber,
+                (s.customerName || s.recipient).replace(/,/g, ';'), // Use customer name, replace commas to avoid CSV issues
+                s.shipDate,
+                s.references,
+                s.revenue.toFixed(2),
+                s.cost.toFixed(2),
+                s.grossProfit.toFixed(2),
+                s.marginPercent
+            ]);
+
+            let csvContent = headers.join(',') + '\n';
+            rows.forEach(row => {
+                csvContent += row.map(cell => `"${cell}"`).join(',') + '\n';
+            });
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', 'shipping_report_' + new Date().toISOString().slice(0, 10) + '.csv');
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function exportToExcel() {
+            if (!filteredAnalysis || !filteredAnalysis.shipments.length) {
+                alert('No data to export');
+                return;
+            }
+
+            // Create worksheet data
+            const wsData = [
+                ['Tracking Number', 'Recipient', 'Ship Date', 'Order Reference', 'Revenue', 'Cost', 'Gross Profit', 'Margin %']
+            ];
+
+            filteredAnalysis.shipments.forEach(s => {
+                wsData.push([
+                    s.trackingNumber,
+                    s.customerName || s.recipient, // Use customer name from sales data
+                    s.shipDate,
+                    s.references,
+                    s.revenue,
+                    s.cost,
+                    s.grossProfit,
+                    parseFloat(s.marginPercent)
+                ]);
+            });
+
+            // Create workbook and worksheet
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+            // Auto-size columns
+            const colWidths = wsData[0].map((_, i) => {
+                const maxLen = Math.max(...wsData.map(row => String(row[i] || '').length));
+                return { wch: Math.min(maxLen + 2, 50) };
+            });
+            ws['!cols'] = colWidths;
+
+            XLSX.utils.book_append_sheet(wb, ws, 'Shipping Report');
+            XLSX.writeFile(wb, 'shipping_report_' + new Date().toISOString().slice(0, 10) + '.xlsx');
+        }
+
+        function resetDashboard() {
+            if (!confirm('Are you sure you want to reset the dashboard? All current data will be cleared.')) {
+                return;
+            }
+            
+            // Clear localStorage
+            localStorage.removeItem('dashboardData');
+            
+            // Clear all data
+            shippingData = null;
+            salesData = null;
+            fullAnalysis = null;
+            filteredAnalysis = null;
+            allShipments = [];
+            activeFilters = {};
+            sortDirection = {};
+            
+            // Reset file inputs
+            document.getElementById('shippingFile').value = '';
+            document.getElementById('salesFile').value = '';
+            
+            // Reset upload areas
+            document.getElementById('shippingUploadArea').classList.remove('success');
+            document.getElementById('shippingUploadText').textContent = 'Click to upload CSV file';
+            document.getElementById('shippingUploadText').classList.remove('success');
+            
+            document.getElementById('salesUploadArea').classList.remove('success');
+            document.getElementById('salesUploadText').textContent = 'Click to upload Excel file';
+            document.getElementById('salesUploadText').classList.remove('success');
+            
+            // Show upload section
+            document.getElementById('uploadSection').style.display = 'grid';
+            
+            // Hide results
+            document.getElementById('summaryCards').style.display = 'none';
+            document.getElementById('filtersSection').classList.remove('show');
+            document.getElementById('tableContainer').classList.remove('show');
+            document.getElementById('instructions').classList.remove('hide');
+            document.getElementById('headerButtons').style.display = 'none';
+            
+            // Clear filters
+            clearFilters();
+            
+            showNotification('Dashboard reset successfully', 'success');
+        }
+
+        function uploadNewData() {
+            // Show upload section
+            document.getElementById('uploadSection').style.display = 'grid';
+            
+            // Scroll to top
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            
+            // Highlight upload areas briefly
+            const uploadSection = document.getElementById('uploadSection');
+            uploadSection.style.border = '2px solid #3b82f6';
+            uploadSection.style.borderRadius = '12px';
+            
+            setTimeout(() => {
+                uploadSection.style.border = '';
+                uploadSection.style.borderRadius = '';
+            }, 2000);
+        }
+
+        let activeFilters = {};
+        let currentFilterColumn = null;
+        let sortDirection = {};
+        let allShipments = [];
+
+        function toggleFilterDropdown(column) {
+            const dropdown = document.getElementById('filterDropdown');
+            const filterOptions = document.getElementById('filterOptions');
+            
+            if (currentFilterColumn === column && dropdown.classList.contains('show')) {
+                closeFilterDropdown();
+                return;
+            }
+            
+            currentFilterColumn = column;
+            
+            // Get unique values for this column
+            let uniqueValues = new Set();
+            allShipments.forEach(shipment => {
+                let value;
+                switch(column) {
+                    case 'tracking':
+                        value = shipment.trackingNumber;
+                        break;
+                    case 'recipient':
+                        value = shipment.customerName || shipment.recipient;
+                        break;
+                    case 'shipDate':
+                        value = shipment.shipDate;
+                        break;
+                    case 'references':
+                        value = shipment.references;
+                        break;
+                    case 'revenue':
+                        value = formatCurrency(shipment.revenue);
+                        break;
+                    case 'cost':
+                        value = formatCurrency(shipment.cost);
+                        break;
+                    case 'grossProfit':
+                        value = formatCurrency(shipment.grossProfit);
+                        break;
+                    case 'marginPercent':
+                        value = shipment.marginPercent + '%';
+                        break;
+                }
+                if (value) uniqueValues.add(value);
+            });
+            
+            // Sort values
+            const sortedValues = Array.from(uniqueValues).sort();
+            
+            // Build checkbox list
+            filterOptions.innerHTML = '';
+            sortedValues.forEach(value => {
+                const isChecked = !activeFilters[column] || activeFilters[column].includes(value);
+                const option = document.createElement('div');
+                option.className = 'filter-option';
+                option.innerHTML = `
+                    <input type="checkbox" value="${value}" ${isChecked ? 'checked' : ''} onchange="updateSelectAll()">
+                    <span>${value}</span>
+                `;
+                filterOptions.appendChild(option);
+            });
+            
+            // Update "Select All" checkbox
+            updateSelectAll();
+            
+            // Position dropdown near the clicked button
+            const button = event.target;
+            const rect = button.getBoundingClientRect();
+            dropdown.style.position = 'fixed';
+            dropdown.style.left = rect.left + 'px';
+            dropdown.style.top = (rect.bottom + 5) + 'px';
+            dropdown.classList.add('show');
+            
+            // Clear search
+            document.getElementById('filterSearch').value = '';
+            
+            // Close dropdown when clicking outside
+            setTimeout(() => {
+                document.addEventListener('click', closeOnClickOutside);
+            }, 100);
+        }
+
+        function closeOnClickOutside(e) {
+            const dropdown = document.getElementById('filterDropdown');
+            if (!dropdown.contains(e.target) && !e.target.closest('button[onclick^="toggleFilterDropdown"]')) {
+                closeFilterDropdown();
+            }
+        }
+
+        function closeFilterDropdown() {
+            document.getElementById('filterDropdown').classList.remove('show');
+            document.removeEventListener('click', closeOnClickOutside);
+            currentFilterColumn = null;
+        }
+
+        function filterDropdownOptions() {
+            const searchValue = document.getElementById('filterSearch').value.toLowerCase();
+            const options = document.querySelectorAll('.filter-option');
+            
+            options.forEach(option => {
+                const text = option.textContent.toLowerCase();
+                option.style.display = text.includes(searchValue) ? 'flex' : 'none';
+            });
+        }
+
+        function toggleSelectAll() {
+            const selectAll = document.getElementById('selectAllFilter');
+            const checkboxes = document.querySelectorAll('.filter-option input[type="checkbox"]');
+            
+            checkboxes.forEach(cb => {
+                if (cb.parentElement.style.display !== 'none') {
+                    cb.checked = selectAll.checked;
+                }
+            });
+        }
+
+        function updateSelectAll() {
+            const checkboxes = Array.from(document.querySelectorAll('.filter-option input[type="checkbox"]'));
+            const visibleCheckboxes = checkboxes.filter(cb => cb.parentElement.style.display !== 'none');
+            const checkedCount = visibleCheckboxes.filter(cb => cb.checked).length;
+            
+            const selectAll = document.getElementById('selectAllFilter');
+            selectAll.checked = checkedCount === visibleCheckboxes.length && visibleCheckboxes.length > 0;
+            selectAll.indeterminate = checkedCount > 0 && checkedCount < visibleCheckboxes.length;
+        }
+
+        function applyColumnFilter() {
+            if (!currentFilterColumn) return;
+            
+            // Get selected values
+            const checkboxes = document.querySelectorAll('.filter-option input[type="checkbox"]:checked');
+            const selectedValues = Array.from(checkboxes).map(cb => cb.value);
+            
+            // Store filter
+            if (selectedValues.length === 0) {
+                delete activeFilters[currentFilterColumn];
+            } else {
+                activeFilters[currentFilterColumn] = selectedValues;
+            }
+            
+            closeFilterDropdown();
+            applyAllFilters();
+        }
+
+        function applyAllFilters() {
+            let filtered = [...allShipments];
+            
+            // Apply each active filter
+            Object.keys(activeFilters).forEach(column => {
+                const allowedValues = activeFilters[column];
+                
+                filtered = filtered.filter(shipment => {
+                    let value;
+                    switch(column) {
+                        case 'tracking':
+                            value = shipment.trackingNumber;
+                            break;
+                        case 'recipient':
+                            value = shipment.customerName || shipment.recipient;
+                            break;
+                        case 'shipDate':
+                            value = shipment.shipDate;
+                            break;
+                        case 'references':
+                            value = shipment.references;
+                            break;
+                        case 'revenue':
+                            value = formatCurrency(shipment.revenue);
+                            break;
+                        case 'cost':
+                            value = formatCurrency(shipment.cost);
+                            break;
+                        case 'grossProfit':
+                            value = formatCurrency(shipment.grossProfit);
+                            break;
+                        case 'marginPercent':
+                            value = shipment.marginPercent + '%';
+                            break;
+                    }
+                    return allowedValues.includes(value);
+                });
+            });
+            
+            // Re-render table
+            displayFilteredResults(filtered);
+        }
+
+        function displayFilteredResults(shipments) {
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '';
+            
+            document.getElementById('tableSubtitle').textContent = 
+                `Showing ${shipments.length} of ${allShipments.length} matched shipments`;
+            
+            shipments.forEach((shipment, index) => {
+                const row = document.createElement('tr');
+                row.className = 'shipment-row';
+                
+                const displayRecipient = shipment.customerName || shipment.recipient.split(' ').slice(0, 3).join(' ');
+                
+                row.innerHTML = `
+                    <td>
+                        <button class="expand-btn" onclick="toggleDetails(${index})" id="expand-btn-${index}">▶</button>
+                    </td>
+                    <td style="font-weight: 600;">${shipment.trackingNumber}</td>
+                    <td>${displayRecipient}</td>
+                    <td>${shipment.shipDate}</td>
+                    <td style="color: #2563eb; font-weight: 600;">${shipment.references}</td>
+                    <td class="text-right">${formatCurrency(shipment.revenue)}</td>
+                    <td class="text-right">${formatCurrency(shipment.cost)}</td>
+                    <td class="text-right" style="font-weight: 600; color: #059669;">${formatCurrency(shipment.grossProfit)}</td>
+                    <td class="text-right">${shipment.marginPercent}%</td>
+                `;
+                
+                tbody.appendChild(row);
+                
+                const detailsRow = document.createElement('tr');
+                detailsRow.className = 'details-row';
+                detailsRow.id = `details-${index}`;
+                detailsRow.style.display = 'none';
+                
+                let detailsHTML = '<td colspan="9" style="padding: 0;"><div style="padding: 20px; background: #f8fafc; border-top: 1px solid #e5e7eb;">';
+                detailsHTML += '<h4 style="margin-bottom: 12px; color: #1e293b;">Order Details</h4>';
+                detailsHTML += '<table style="width: 100%; font-size: 13px;">';
+                detailsHTML += '<thead><tr style="background: #e2e8f0;"><th style="padding: 8px; text-align: left;">Sales Order</th><th style="padding: 8px; text-align: left;">Product</th><th style="padding: 8px; text-align: right;">Quantity</th><th style="padding: 8px; text-align: right;">Unit Cost</th><th style="padding: 8px; text-align: right;">Unit Price</th><th style="padding: 8px; text-align: right;">Total Cost</th><th style="padding: 8px; text-align: right;">Total Price</th><th style="padding: 8px; text-align: right;">GP</th><th style="padding: 8px; text-align: right;">Margin%</th></tr></thead><tbody>';
+                
+                shipment.orders.forEach(order => {
+                    const unitCost = order.quantity > 0 ? (order.cost / order.quantity) : 0;
+                    const unitPrice = order.quantity > 0 ? (order.revenue / order.quantity) : 0;
+                    
+                    detailsHTML += `<tr style="border-bottom: 1px solid #e5e7eb;"><td style="padding: 8px;">${order.salesOrder}</td><td style="padding: 8px;">${order.product}</td><td style="padding: 8px; text-align: right;">${order.quantity}</td><td style="padding: 8px; text-align: right;">${formatCurrency(unitCost)}</td><td style="padding: 8px; text-align: right;">${formatCurrency(unitPrice)}</td><td style="padding: 8px; text-align: right;">${formatCurrency(order.cost)}</td><td style="padding: 8px; text-align: right;">${formatCurrency(order.revenue)}</td><td style="padding: 8px; text-align: right; font-weight: 600; color: #059669;">${formatCurrency(order.grossProfit)}</td><td style="padding: 8px; text-align: right;">${order.marginPercent}%</td></tr>`;
+                });
+                
+                detailsHTML += '</tbody></table></div></td>';
+                detailsRow.innerHTML = detailsHTML;
+                tbody.appendChild(detailsRow);
+            });
+        }
+
+        function sortTable(column) {
+            // Toggle sort direction
+            if (!sortDirection[column]) {
+                sortDirection[column] = 'asc';
+            } else if (sortDirection[column] === 'asc') {
+                sortDirection[column] = 'desc';
+            } else {
+                sortDirection[column] = 'asc';
+            }
+
+            const direction = sortDirection[column];
+            let filtered = [...allShipments];
+            
+            // Apply active filters first
+            if (Object.keys(activeFilters).length > 0) {
+                Object.keys(activeFilters).forEach(col => {
+                    const allowedValues = activeFilters[col];
+                    filtered = filtered.filter(shipment => {
+                        let value;
+                        switch(col) {
+                            case 'tracking': value = shipment.trackingNumber; break;
+                            case 'recipient': value = shipment.customerName || shipment.recipient; break;
+                            case 'shipDate': value = shipment.shipDate; break;
+                            case 'references': value = shipment.references; break;
+                            case 'revenue': value = formatCurrency(shipment.revenue); break;
+                            case 'cost': value = formatCurrency(shipment.cost); break;
+                            case 'grossProfit': value = formatCurrency(shipment.grossProfit); break;
+                            case 'marginPercent': value = shipment.marginPercent + '%'; break;
+                        }
+                        return allowedValues.includes(value);
+                    });
+                });
+            }
+
+            filtered.sort((a, b) => {
+                let valA, valB;
+                switch(column) {
+                    case 'trackingNumber': valA = a.trackingNumber || ''; valB = b.trackingNumber || ''; break;
+                    case 'recipient': valA = (a.customerName || a.recipient || '').toLowerCase(); valB = (b.customerName || b.recipient || '').toLowerCase(); break;
+                    case 'shipDate': valA = new Date(a.shipDate); valB = new Date(b.shipDate); break;
+                    case 'references': valA = a.references || ''; valB = b.references || ''; break;
+                    case 'revenue': valA = a.revenue || 0; valB = b.revenue || 0; break;
+                    case 'cost': valA = a.cost || 0; valB = b.cost || 0; break;
+                    case 'grossProfit': valA = a.grossProfit || 0; valB = b.grossProfit || 0; break;
+                    case 'marginPercent': valA = parseFloat(a.marginPercent) || 0; valB = parseFloat(b.marginPercent) || 0; break;
+                    default: return 0;
+                }
+                if (valA < valB) return direction === 'asc' ? -1 : 1;
+                if (valA > valB) return direction === 'asc' ? 1 : -1;
+                return 0;
+            });
+
+            displayFilteredResults(filtered);
+        }
+    </script>
+</body>
+</html>
